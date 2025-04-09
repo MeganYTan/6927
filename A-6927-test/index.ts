@@ -1,24 +1,34 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as azure from "@pulumi/azure-native";
 
+const stackRef = new pulumi.StackReference("mtan/B-6927-test/dev");
+console.log("Stack ref: ", stackRef);
+
 async function main() {
+    if (!stackRef) {
+        console.log("Stack B-6927-test does not exist yet. Will retry on next deployment.");
+        return;
+    }
+    // Check if the stack reference exists
     try {
-        const stackRef = new pulumi.StackReference("mtan/B-6927-test/dev");
         const frontDoorId = stackRef.getOutput("frontDoorId");
 
         const resourceGroupA = new azure.resources.ResourceGroup("example-rg-a");
 
-        const apiManagementService = new azure.apimanagement.ApiManagementService("apiManagementService", {
+        const storageAccount = new azure.storage.StorageAccount("examplestorage", {
             resourceGroupName: resourceGroupA.name,
-            publisherEmail: "example@example.com",
-            publisherName: "Example Publisher",
             sku: {
-                capacity: 1,
-                name: "Developer"
+                name: "Standard_LRS"
             },
-            enableClientCertificate: true
-            // Assuming frontDoorId is used in some property
+            kind: "StorageV2"
         });
+
+        const storageContainer = new azure.storage.BlobContainer("examplecontainer", {
+            resourceGroupName: resourceGroupA.name,
+            accountName: storageAccount.name,
+            publicAccess: azure.storage.PublicAccess.None
+        });
+
     } catch (error) {
         console.log("Stack B-6927-test does not exist yet. Will retry on next deployment.");
     }
